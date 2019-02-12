@@ -13,6 +13,11 @@ clean:
 	@find . -name \*.py[co] -delete
 	@find . -name *\__pycache__ -delete
 
+.PHONY: test
+# target: test - test the code
+test:
+	@pipenv run pytest
+
 .PHONY: build
 # target: build - Build package
 build: clean
