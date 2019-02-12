@@ -1,6 +1,9 @@
 Async JSON-RPC 2.0 protocol + asyncio server
 ============================================
 
+.. image:: https://circleci.com/gh/pavlov99/ajsonrpc/tree/master.svg?style=svg
+    :target: https://circleci.com/gh/pavlov99/ajsonrpc/tree/master
+
 .. image:: https://readthedocs.org/projects/ajsonrpc/badge/?version=latest
     :target: https://ajsonrpc.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
