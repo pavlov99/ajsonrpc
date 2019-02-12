@@ -1,3 +1,4 @@
 build/
 dist/
 ajsonrpc.egg-info/
+docs/_build/

@@ -5,6 +5,8 @@ verify_ssl = true
 
 [dev-packages]
 twine = "==1.12.1"
+sphinx = "==1.8.3"
+sphinx-rtd-theme = "==0.4.2"
 
 [packages]
 
