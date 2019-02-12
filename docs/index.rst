@@ -6,7 +6,7 @@
 Async JSON-RPC 2.0 protocol implementation
 ==========================================
 
-:Source code: https://github.com/pavlov99/async-json-rpc
+:Source code: https://github.com/pavlov99/ajsonrpc
 
 
 Contents
