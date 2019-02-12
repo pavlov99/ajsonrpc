@@ -22,6 +22,11 @@ setup(
     author="Kirill Pavlov",
     author_email="k@p99.io",
     packages=['ajsonrpc'],
+    entry_points = {
+        'console_scripts': [
+            'async-json-rpc-server=ajsonrpc.scripts.server:main',
+        ],
+    },
     include_package_data=True,
     platforms='any',
     python_requires='>=3.5',
