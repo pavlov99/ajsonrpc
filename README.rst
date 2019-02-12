@@ -9,6 +9,7 @@ Lightweight JSON-RPC 2.0 protocol implementation and asynchronous server powered
 It is largely compatible but there are few differences: ...
 
 Features:
+
 * Full JSON-RPC 2.0 Implementation, request and response classes make sure standard is followed
 * Asynchronouse response manager and asynio support via low-level Protocol
 * API server setup in 1 min
