@@ -29,14 +29,15 @@ Installing
 Example server script
 ---------------------
 
-```
-pipenv run async-json-rpc-server examples.methods
-```
+.. code-block:: text
 
-```
-curl -d '{"jsonrpc": "2.0", "method": "echo", "id": 0}' http://127.0.0.1:8888
+    pipenv run async-json-rpc-server examples.methods
 
-curl -d '{"jsonrpc": "2.0", "method": "mul2", "params": [2, 3], "id": 1}' http://127.0.0.1:8888
 
-curl -d '{"jsonrpc": "2.0", "method": "say_after", "params": {"delay": 1, "what": "ajsonrpc!"}, "id": 2}' http://127.0.0.1:8888
-```
+.. code-block:: text
+
+    curl -d '{"jsonrpc": "2.0", "method": "echo", "id": 0}' http://127.0.0.1:8888
+
+    curl -d '{"jsonrpc": "2.0", "method": "mul2", "params": [2, 3], "id": 1}' http://127.0.0.1:8888
+
+    curl -d '{"jsonrpc": "2.0", "method": "say_after", "params": {"delay": 1, "what": "ajsonrpc!"}, "id": 2}' http://127.0.0.1:8888
