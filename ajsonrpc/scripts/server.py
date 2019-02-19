@@ -37,6 +37,7 @@ class JSONRPCProtocol(asyncio.Protocol):
         headers, body = request_message.split('\r\n\r\n', 1)
         print('Body: {!r}\n'.format(body))
 
+        # TODO: delegate to ResponseManager such string handling.
         data = json.loads(body)
         del data["jsonrpc"]
         req = JSONRPC20Request(**data)
@@ -60,7 +61,6 @@ def main():
     parser.add_argument('module')
 
     args = parser.parse_args()
-    print(args)
     m = import_module(args.module)
     print('Imported module {}'.format(m))
     # get functions from the module
