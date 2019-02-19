@@ -29,7 +29,7 @@ class JSONRPC20Request(JSONSerializable):
                 method: str,
                 params: Optional[Union[Mapping[str, Any], Iterable[Any]]] = None,
                 id: Optional[Union[str, int]] = None,
-                is_notification: bool = False,
+                is_notification: bool = False
                 ) -> None:
 
         self.payload = {
@@ -78,7 +78,7 @@ class JSONRPC20Request(JSONSerializable):
 
     @property
     def is_notification(self):
-        return 'id' in self.payload
+        return 'id' not in self.payload
 
     @property
     def args(self):
