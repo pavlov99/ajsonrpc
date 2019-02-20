@@ -1,7 +1,7 @@
 import argparse
 import asyncio
 import json
-from importlib import import_module
+import importlib.util
 from inspect import getmembers, isfunction
 from ajsonrpc import __version__
 from ajsonrpc.dispatcher import Dispatcher
@@ -61,10 +61,12 @@ def main():
     parser.add_argument('module')
 
     args = parser.parse_args()
-    m = import_module(args.module)
-    print('Imported module {}'.format(m))
+
+    spec = importlib.util.spec_from_file_location("module", args.module)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
     # get functions from the module
-    methods = getmembers(m, isfunction)
+    methods = getmembers(module, isfunction)
     print('Extracted methods: {}'.format(methods))
     dispatcher = Dispatcher(dict(methods))
     print('Dispatcher: {}'.format(dispatcher))
