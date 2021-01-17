@@ -1,7 +1,7 @@
 import unittest
 import warnings
 
-from ..core import JSONRPC20Request, JSONRPC20RequestIdWarning
+from ..core import JSONRPC20Request, JSONRPC20RequestIdWarning, JSONRPC20BatchRequest
 
 
 class TestJSONRPC20Request(unittest.TestCase):
@@ -187,3 +187,14 @@ class TestJSONRPC20Request(unittest.TestCase):
         self.assertEqual(JSONRPC20Request("add", [1, 2], id=0).kwargs, {})
         self.assertEqual(JSONRPC20Request("add", {}, id=0).kwargs, {})
         self.assertEqual(JSONRPC20Request("add", {"a": 1}, id=0).kwargs, {"a": 1})
+
+
+class TestJSONRPC20BatchRequest(unittest.TestCase):
+    def test_init(self):
+        br = JSONRPC20BatchRequest()
+        self.assertEqual(len(br), 0)
+
+        br.append(JSONRPC20Request("first", id=1))
+        br.extend([JSONRPC20Request("second", id=2)])
+        self.assertEqual(len(br), 2)
+        self.assertEqual(br[-1].method, "second")

@@ -3,6 +3,7 @@ from types import FunctionType
 from numbers import Number
 import warnings
 import json
+import collections
 
 
 class JSONRPC20RequestIdWarning(UserWarning):
@@ -233,6 +234,26 @@ class JSONRPC20Request:
         """
         # if mapping
         return dict(self.params) if isinstance(self.params, Mapping) else {}
+
+
+class JSONRPC20BatchRequest(collections.MutableSequence):
+    def __init__(self, requests: List[JSONRPC20Request] = None):
+        self.requests = requests or []
+    
+    def __getitem__(self, index):
+        return self.requests[index]
+
+    def __setitem__(self, index, value: JSONRPC20Request):
+        self.requests[index] = value
+
+    def __delitem__(self, index):
+        del self.requests[index]
+
+    def __len__(self):
+        return len(self.requests)
+    
+    def insert(self, index, value: JSONRPC20Request):
+        self.requests.insert(index, value)
 
 
 # class JSONRPCError(JSONSerializable):
