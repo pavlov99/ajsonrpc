@@ -9,6 +9,7 @@ import collections
 class JSONRPC20RequestIdWarning(UserWarning):
     pass
 
+
 class JSONRPC20Request:
     """JSON-RPC 2.0 Request object.
 
@@ -131,7 +132,7 @@ class JSONRPC20Request:
         self.validate_method(value["method"])
         if "params" in value:
             self.validate_params(value["params"])
-        
+
         # Validate id for non-notification
         if "id" in value:
             self.validate_id(value["id"])
@@ -178,7 +179,7 @@ class JSONRPC20Request:
     def params(self, value: Optional[Union[Mapping[str, Any], Iterable[Any]]]) -> None:
         self.validate_params(value)
         self._body["params"] = value
-    
+
     @params.deleter
     def params(self):
         del self._body["params"]
@@ -198,7 +199,7 @@ class JSONRPC20Request:
                 JSONRPC20RequestIdWarning
             )
             return
-        
+
         if not isinstance(value, (str, Number)):
             raise ValueError("id MUST contain a String, Number, or NULL value")
 
@@ -248,7 +249,7 @@ class JSONRPC20Request:
 class JSONRPC20BatchRequest(collections.MutableSequence):
     def __init__(self, requests: List[JSONRPC20Request] = None):
         self.requests = requests or []
-    
+
     def __getitem__(self, index):
         return self.requests[index]
 
@@ -260,7 +261,7 @@ class JSONRPC20BatchRequest(collections.MutableSequence):
 
     def __len__(self):
         return len(self.requests)
-    
+
     def insert(self, index, value: JSONRPC20Request):
         self.requests.insert(index, value)
 
@@ -451,43 +452,113 @@ class JSONRPC20ServerError(JSONRPC20SpecificError):
     MESSAGE = "Server error"
 
 
-# class JSONRPC20Response(JSONSerializable):
-#     def __init__(self,
-#                 result: Optional[Any] = None,
-#                 error: Optional[JSONRPCError] = None,
-#                 id: Optional[Union[int, str]] = None,
-#                 ) -> None:
+class JSONRPC20Response:
+    def __init__(self,
+                result: Optional[Any] = None,
+                error: Optional[JSONRPC20Error] = None,
+                id: Optional[Union[str, int]] = None,
+                ) -> None:
+        response_body = {
+            "jsonrpc": "2.0",
+            "id": id,
+        }
 
-#         self.payload = {
-#             'jsonrpc': '2.0'
-#         }
+        if result is not None:
+            response_body["result"] = result
 
-#         if result is not None:
-#             self.payload['result'] = result
+        if error is not None:
+            response_body["error"] = error
 
-#         if error is not None:
-#             self.payload['error'] = error
+        self._body = {}  # init body
+        self.body = response_body
 
-#         self.id = id
+    @property
+    def body(self):
+        return self._body
 
-#     def __repr__(self):
-#         return repr(self.payload)
+    @body.setter
+    def body(self, value: Mapping[str, Any]) -> None:
+        if not isinstance(value, dict):
+            raise ValueError("value has to be of type dict")
 
-#     def __str__(self):
-#         return self.serialize(self.payload)
+        if value.get("jsonrpc") != "2.0":
+            raise ValueError("value['jsonrpc'] has to be '2.0'")
 
-#     @property
-#     def id(self):
-#         return self.payload['id']
+        if "result" not in value and "erorr" not in value:
+            raise ValueError("Either result or error should exist")
 
-#     @id.setter
-#     def id(self, value: Optional[Union[str, int]]) -> None:
-#         self.payload['id'] = value
+        if "result" in value and "erorr" in value:
+            raise ValueError("Only one result or error should exist")
 
-#     @property
-#     def result(self):
-#         return self.payload.get('result')
+        if "error" in value:
+            self.validate_error(value["error"])
 
-#     @property
-#     def error(self):
-#         return self.payload.get('error')
+        self.validate_id(value["id"])
+
+        self._body = {
+            k: v for (k, v) in value.items()
+            if k in ["jsonrpc", "result", "error", "id"]
+        }
+
+    @property
+    def result(self) -> Optional[Any]:
+        return self.body.get("result")
+
+    @property
+    def error(self) -> Optional[JSONRPC20Error]:
+        return self.body.get("error")
+
+    def validate_error(self, value: Optional[JSONRPC20Error]) -> None:
+        if not isinstance(value, JSONRPC20Error):
+            raise ValueError("Error has to be a subclass of JSONRPC20Error")
+
+    @property
+    def id(self):
+        return self.body["id"]
+
+    def validate_id(self, value: Optional[Union[str, Number]]) -> None:
+        if value is None:
+            warnings.warn(
+                "The use of Null as a value for the id member in a Request "
+                "object is discouraged, because this specification uses a "
+                "value of Null for Responses with an unknown id. Also, because"
+                " JSON-RPC 1.0 uses an id value of Null for Notifications this"
+                " could cause confusion in handling.",
+                JSONRPC20RequestIdWarning
+            )
+            return
+
+        if not isinstance(value, (str, Number)):
+            raise ValueError("id MUST contain a String, Number, or NULL value")
+
+        if isinstance(value, Number) and not isinstance(value, int):
+            warnings.warn(
+                "Fractional parts may be problematic, since many decimal "
+                "fractions cannot be represented exactly as binary fractions.",
+                JSONRPC20RequestIdWarning
+            )
+
+    @id.setter
+    def id(self, value: Optional[Union[str, Number]]) -> None:
+        self.validate_id(value)
+        self._body["id"] = value
+
+
+class JSONRPC20BatchResponse(collections.MutableSequence):
+    def __init__(self, requests: List[JSONRPC20Response] = None):
+        self.requests = requests or []
+
+    def __getitem__(self, index):
+        return self.requests[index]
+
+    def __setitem__(self, index, value: JSONRPC20Response):
+        self.requests[index] = value
+
+    def __delitem__(self, index):
+        del self.requests[index]
+
+    def __len__(self):
+        return len(self.requests)
+
+    def insert(self, index, value: JSONRPC20Response):
+        self.requests.insert(index, value)
