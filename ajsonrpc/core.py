@@ -1,8 +1,6 @@
 from typing import Union, Optional, Any, Iterable, Mapping, List, Dict
-from types import FunctionType
 from numbers import Number
 import warnings
-import json
 import collections
 
 
@@ -146,7 +144,8 @@ class JSONRPC20Request:
     def method(self) -> str:
         return self.body["method"]
 
-    def validate_method(self, value: str) -> None:
+    @staticmethod
+    def validate_method(value: str) -> None:
         if not isinstance(value, str):
             raise ValueError("Method should be string")
 
@@ -166,7 +165,8 @@ class JSONRPC20Request:
     def params(self) -> Optional[Union[Mapping[str, Any], Iterable[Any]]]:
         return self.body.get("params")
 
-    def validate_params(self, value: Optional[Union[Mapping[str, Any], Iterable[Any]]]) -> None:
+    @staticmethod
+    def validate_params(value: Optional[Union[Mapping[str, Any], Iterable[Any]]]) -> None:
         """
         Note: params has to be None, dict or iterable. In the latter case it would be
         converted to a list. It is possible to set param as tuple or even string as they
@@ -188,7 +188,8 @@ class JSONRPC20Request:
     def id(self):
         return self.body["id"]
 
-    def validate_id(self, value: Optional[Union[str, Number]]) -> None:
+    @staticmethod
+    def validate_id(value: Optional[Union[str, Number]]) -> None:
         if value is None:
             warnings.warn(
                 "The use of Null as a value for the id member in a Request "
@@ -336,7 +337,8 @@ class JSONRPC20Error:
     def code(self):
         return self.body["code"]
 
-    def validate_code(self, value: int) -> None:
+    @staticmethod
+    def validate_code(value: int) -> None:
         if not isinstance(value, int):
             raise ValueError("Error code MUST be an integer")
 
@@ -349,7 +351,8 @@ class JSONRPC20Error:
     def message(self) -> str:
         return self.body["message"]
 
-    def validate_message(self, value: str) -> None:
+    @staticmethod
+    def validate_message(value: str) -> None:
         if not isinstance(value, str):
             raise ValueError("Error message should be string")
 
@@ -508,7 +511,8 @@ class JSONRPC20Response:
     def error(self) -> Optional[JSONRPC20Error]:
         return self.body.get("error")
 
-    def validate_error(self, value: Optional[JSONRPC20Error]) -> None:
+    @staticmethod
+    def validate_error(value: Optional[JSONRPC20Error]) -> None:
         if not isinstance(value, JSONRPC20Error):
             raise ValueError("Error has to be a subclass of JSONRPC20Error")
 
@@ -516,7 +520,8 @@ class JSONRPC20Response:
     def id(self):
         return self.body["id"]
 
-    def validate_id(self, value: Optional[Union[str, Number]]) -> None:
+    @staticmethod
+    def validate_id(value: Optional[Union[str, Number]]) -> None:
         if value is None:
             warnings.warn(
                 "The use of Null as a value for the id member in a Request "
