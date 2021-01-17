@@ -113,6 +113,7 @@ class JSONRPC20Request:
             # For non-notifications "id" has to be in body, even if null
             request_body["id"] = id
 
+        self._body = {}  # init body
         self.body = request_body
 
     @property
@@ -121,23 +122,30 @@ class JSONRPC20Request:
 
     @body.setter
     def body(self, value: Mapping[str, Any]) -> None:
-        self._body = value
+        if not isinstance(value, dict):
+            raise ValueError("value has to be of type dict")
 
-        # Call validators via value assigning
-        self.method = value["method"]
+        if value.get("jsonrpc") != "2.0":
+            raise ValueError("value['jsonrpc'] has to be '2.0'")
 
+        self.validate_method(value["method"])
         if "params" in value:
-            self.params = value["params"]
+            self.validate_params(value["params"])
         
+        # Validate id for non-notification
         if "id" in value:
-            self.id = value["id"]
+            self.validate_id(value["id"])
+
+        self._body = {
+            k: v for (k, v) in value.items()
+            if k in ["jsonrpc", "method", "params", "id"]
+        }
 
     @property
     def method(self) -> str:
         return self.body["method"]
-    
-    @method.setter
-    def method(self, value: str) -> None:
+
+    def validate_method(self, value: str) -> None:
         if not isinstance(value, str):
             raise ValueError("Method should be string")
 
@@ -148,27 +156,27 @@ class JSONRPC20Request:
                 "rpc-internal methods and extensions and MUST NOT be used " +
                 "for anything else.")
 
+    @method.setter
+    def method(self, value: str) -> None:
+        self.validate_method(value)
         self._body["method"] = value
 
     @property
     def params(self) -> Optional[Union[Mapping[str, Any], Iterable[Any]]]:
         return self.body.get("params")
 
-    @params.setter
-    def params(self, value: Optional[Union[Mapping[str, Any], Iterable[Any]]]) -> None:
+    def validate_params(self, value: Optional[Union[Mapping[str, Any], Iterable[Any]]]) -> None:
         """
         Note: params has to be None, dict or iterable. In the latter case it would be
         converted to a list. It is possible to set param as tuple or even string as they
         are iterables, they would be converted to lists, e.g. ["h", "e", "l", "l", "o"]
         """
-        if value is None:
-            if "params" in self._body:
-                del self._body["params"]
-            return
-
         if not isinstance(value, (Mapping, Iterable)):
             raise ValueError("Incorrect params {0}".format(value))
 
+    @params.setter
+    def params(self, value: Optional[Union[Mapping[str, Any], Iterable[Any]]]) -> None:
+        self.validate_params(value)
         self._body["params"] = value
     
     @params.deleter
@@ -179,8 +187,7 @@ class JSONRPC20Request:
     def id(self):
         return self.body["id"]
 
-    @id.setter
-    def id(self, value: Optional[Union[str, Number]]) -> None:
+    def validate_id(self, value: Optional[Union[str, Number]]) -> None:
         if value is None:
             warnings.warn(
                 "The use of Null as a value for the id member in a Request "
@@ -190,7 +197,6 @@ class JSONRPC20Request:
                 " could cause confusion in handling.",
                 JSONRPC20RequestIdWarning
             )
-            self._body["id"] = value
             return
         
         if not isinstance(value, (str, Number)):
@@ -203,6 +209,9 @@ class JSONRPC20Request:
                 JSONRPC20RequestIdWarning
             )
 
+    @id.setter
+    def id(self, value: Optional[Union[str, Number]]) -> None:
+        self.validate_id(value)
         self._body["id"] = value
 
     @id.deleter
@@ -256,142 +265,170 @@ class JSONRPC20BatchRequest(collections.MutableSequence):
         self.requests.insert(index, value)
 
 
-# class JSONRPCError(JSONSerializable):
+class JSONRPC20Error:
 
-#     """ Error for JSON-RPC communication.
-#     When a rpc call encounters an error, the Response Object MUST contain the
-#     error member with a value that is a Object with the following members:
-#     Parameters
-#     ----------
-#     code: int
-#         A Number that indicates the error type that occurred.
-#         This MUST be an integer.
-#         The error codes from and including -32768 to -32000 are reserved for
-#         pre-defined errors. Any code within this range, but not defined
-#         explicitly below is reserved for future use. The error codes are nearly
-#         the same as those suggested for XML-RPC at the following
-#         url: http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php
-#     message: str
-#         A String providing a short description of the error.
-#         The message SHOULD be limited to a concise single sentence.
-#     data: int or str or dict or list, optional
-#         A Primitive or Structured value that contains additional
-#         information about the error.
-#         This may be omitted.
-#         The value of this member is defined by the Server (e.g. detailed error
-#         information, nested errors etc.).
-#     """
+    """Error object.
 
-#     def __init__(self, code: int = None, message: str = None, data: Any = None):
-#         self.payload = {}
-#         self.code = getattr(self.__class__, "CODE", code)
-#         self.message = getattr(self.__class__, "MESSAGE", message)
+    When a rpc call encounters an error, the Response Object MUST contain the
+    error member with a value that is a Object with the following members:
 
-#         if data is not None:
-#             # NOTE: if not set in constructor, do not add 'data' to payload.
-#             # If data = null is requred, set it after object initialization.
-#             self.data = data
+    code
+        A Number that indicates the error type that occurred.
+        This MUST be an integer.
+    message
+        A String providing a short description of the error.
+        The message SHOULD be limited to a concise single sentence.
+    data
+        A Primitive or Structured value that contains additional information
+        about the error.
+        This may be omitted.
+        The value of this member is defined by the Server (e.g. detailed error
+        information, nested errors etc.).
 
-#     def __repr__(self):
-#         return repr(self.payload)
+    The error codes from and including -32768 to -32000 are reserved for
+    pre-defined errors. Any code within this range, but not defined explicitly
+    below is reserved for future use. The error codes are nearly the same as
+    those suggested for XML-RPC at the following url:
+    http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php
 
-#     def __str__(self):
-#         return self.serialize(self.payload)
+    code             | message	        | meaning
+    -----------------|------------------|-------------------------------------
+    -32700           | Parse error	    | Invalid JSON was received by the server.
+                                        | An error occurred on the server while parsing the JSON text.
+    -32600           | Invalid Request	| The JSON sent is not a valid Request object.
+    -32601           | Method not found	| The method does not exist / is not available.
+    -32602           | Invalid params	| Invalid method parameter(s).
+    -32603           | Internal error	| Internal JSON-RPC error.
+    -32000 to -32099 | Server error	    | Reserved for implementation-defined server-errors.
 
-#     @property
-#     def code(self):
-#         return self.payload["code"]
+    The remainder of the space is available for application defined errors.
 
-#     @code.setter
-#     def code(self, value: int):
-#         if not isinstance(value, int):
-#             raise ValueError("Error code should be integer")
+    """
 
-#         self.payload["code"] = value
+    def __init__(self, code: int, message: str, data: Any = None):
+        error_body = {
+            "code": getattr(self.__class__, "CODE", code),
+            "message": getattr(self.__class__, "MESSAGE", message)
+        }
+        if data is not None:
+            # NOTE: if not set in constructor, do not add 'data' to payload.
+            # If data = null is requred, set it after object initialization.
+            error_body["data"] = data
 
-#     @property
-#     def message(self):
-#         return self.payload["message"]
+        self._body = {}  # init body
+        self.body = error_body
 
-#     @message.setter
-#     def message(self, value: str):
-#         if not isinstance(value, str):
-#             raise ValueError("Error message should be string")
+    @property
+    def body(self):
+        return self._body
 
-#         self.payload["message"] = value
+    @body.setter
+    def body(self, value):
+        if not isinstance(value, dict):
+            raise ValueError("value has to be of type dict")
 
-#     @property
-#     def data(self):
-#         return self.payload.get("data")
+        self.validate_code(value["code"])
+        self.validate_message(value["message"])
+        self._body = value
 
-#     @data.setter
-#     def data(self, value):
-#         self.payload["data"] = value
+    @property
+    def code(self):
+        return self.body["code"]
 
-#     @data.deleter
-#     def data(self):
-#         del self.payload["data"]
+    def validate_code(self, value: int) -> None:
+        if not isinstance(value, int):
+            raise ValueError("Error code MUST be an integer")
 
+    @code.setter
+    def code(self, value: int) -> None:
+        self.validate_code(value)
+        self._body["code"] = value
 
-# class JSONRPCParseError(JSONRPCError):
+    @property
+    def message(self) -> str:
+        return self.body["message"]
 
-#     """ Parse Error.
-#     Invalid JSON was received by the server.
-#     An error occurred on the server while parsing the JSON text.
-#     """
+    def validate_message(self, value: str) -> None:
+        if not isinstance(value, str):
+            raise ValueError("Error message should be string")
 
-#     CODE = -32700
-#     MESSAGE = "Parse error"
+    @message.setter
+    def message(self, value: str):
+        self.validate_message(value)
+        self._body["message"] = value
 
+    @property
+    def data(self):
+        return self._body.get("data")
 
-# class JSONRPCInvalidRequest(JSONRPCError):
+    @data.setter
+    def data(self, value):
+        self._body["data"] = value
 
-#     """ Invalid Request.
-#     The JSON sent is not a valid Request object.
-#     """
-
-#     CODE = -32600
-#     MESSAGE = "Invalid Request"
-
-
-# class JSONRPCMethodNotFound(JSONRPCError):
-
-#     """ Method not found.
-#     The method does not exist / is not available.
-#     """
-
-#     CODE = -32601
-#     MESSAGE = "Method not found"
+    @data.deleter
+    def data(self):
+        del self._body["data"]
 
 
-# class JSONRPCInvalidParams(JSONRPCError):
+class JSONRPC20ParseError(JSONRPC20Error):
 
-#     """ Invalid params.
-#     Invalid method parameter(s).
-#     """
+    """Parse Error.
+    Invalid JSON was received by the server.
+    An error occurred on the server while parsing the JSON text.
+    """
 
-#     CODE = -32602
-#     MESSAGE = "Invalid params"
-
-
-# class JSONRPCInternalError(JSONRPCError):
-
-#     """ Internal error.
-#     Internal JSON-RPC error.
-#     """
-
-#     CODE = -32603
-#     MESSAGE = "Internal error"
+    CODE = -32700
+    MESSAGE = "Parse error"
 
 
-# class JSONRPCServerError(JSONRPCError):
+class JSONRPC20InvalidRequest(JSONRPC20Error):
 
-#     """ Server error.
-#     Reserved for implementation-defined server-errors.
-#     """
+    """Invalid Request.
+    The JSON sent is not a valid Request object.
+    """
 
-#     CODE = -32000
-#     MESSAGE = "Server error"
+    CODE = -32600
+    MESSAGE = "Invalid Request"
+
+
+class JSONRPC20MethodNotFound(JSONRPC20Error):
+
+    """Method not found.
+    The method does not exist / is not available.
+    """
+
+    CODE = -32601
+    MESSAGE = "Method not found"
+
+
+class JSONRPC20InvalidParams(JSONRPC20Error):
+
+    """Invalid params.
+    Invalid method parameter(s).
+    """
+
+    CODE = -32602
+    MESSAGE = "Invalid params"
+
+
+class JSONRPC20InternalError(JSONRPC20Error):
+
+    """Internal error.
+    Internal JSON-RPC error.
+    """
+
+    CODE = -32603
+    MESSAGE = "Internal error"
+
+
+class JSONRPC20ServerError(JSONRPC20Error):
+
+    """Server error.
+    Reserved for implementation-defined server-errors.
+    """
+
+    CODE = -32000
+    MESSAGE = "Server error"
 
 
 # class JSONRPC20Response(JSONSerializable):
