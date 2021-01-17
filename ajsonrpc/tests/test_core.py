@@ -1,10 +1,11 @@
 import unittest
 import warnings
 
-from ..core import (
-    JSONRPC20BatchRequest, JSONRPC20Error, JSONRPC20Request,
-    JSONRPC20RequestIdWarning
-)
+from ..core import (JSONRPC20BatchRequest, JSONRPC20Error,
+                    JSONRPC20InternalError, JSONRPC20InvalidParams,
+                    JSONRPC20InvalidRequest, JSONRPC20MethodNotFound,
+                    JSONRPC20ParseError, JSONRPC20Request,
+                    JSONRPC20RequestIdWarning, JSONRPC20ServerError)
 
 
 class TestJSONRPC20Request(unittest.TestCase):
@@ -312,3 +313,20 @@ class TestJSONRPC20Error(unittest.TestCase):
         self.assertEqual(e.data, 0)
         e.data = {"timestamp": 0}
         self.assertEqual(e.data, {"timestamp": 0})
+
+    def test_could_not_change_code_message_predefined_errors(self):
+        errors = [
+            JSONRPC20ParseError(),
+            JSONRPC20InvalidRequest(),
+            JSONRPC20MethodNotFound(),
+            JSONRPC20InvalidParams(),
+            JSONRPC20InternalError(),
+            JSONRPC20ServerError(),
+        ]
+
+        for error in errors:
+            with self.assertRaises(NotImplementedError):
+                error.code = 0
+
+            with self.assertRaises(NotImplementedError):
+                error.message = ""

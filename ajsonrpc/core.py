@@ -307,8 +307,8 @@ class JSONRPC20Error:
 
     def __init__(self, code: int, message: str, data: Any = None):
         error_body = {
-            "code": getattr(self.__class__, "CODE", code),
-            "message": getattr(self.__class__, "MESSAGE", message)
+            "code": code,
+            "message": message,
         }
         if data is not None:
             # NOTE: if not set in constructor, do not add 'data' to payload.
@@ -370,7 +370,27 @@ class JSONRPC20Error:
         del self._body["data"]
 
 
-class JSONRPC20ParseError(JSONRPC20Error):
+class JSONRPC20SpecificError(JSONRPC20Error):
+
+    """Base class for errors with fixed code and message.
+
+    Keep only data in constructor and forbid code and message modifications.
+
+    """
+
+    def __init__(self, data: Any = None):
+        super(JSONRPC20SpecificError, self).__init__(getattr(self.__class__, "CODE"), getattr(self.__class__, "MESSAGE"), data)
+
+    def __setattr__(self, attr, value):
+        if attr == "code":
+            raise NotImplementedError("Code modification is forbidden")
+        elif attr == "message":
+            raise NotImplementedError("Message modification is forbidden")
+        else:
+            super(JSONRPC20SpecificError, self).__setattr__(attr, value)
+
+
+class JSONRPC20ParseError(JSONRPC20SpecificError):
 
     """Parse Error.
     Invalid JSON was received by the server.
@@ -381,7 +401,7 @@ class JSONRPC20ParseError(JSONRPC20Error):
     MESSAGE = "Parse error"
 
 
-class JSONRPC20InvalidRequest(JSONRPC20Error):
+class JSONRPC20InvalidRequest(JSONRPC20SpecificError):
 
     """Invalid Request.
     The JSON sent is not a valid Request object.
@@ -391,7 +411,7 @@ class JSONRPC20InvalidRequest(JSONRPC20Error):
     MESSAGE = "Invalid Request"
 
 
-class JSONRPC20MethodNotFound(JSONRPC20Error):
+class JSONRPC20MethodNotFound(JSONRPC20SpecificError):
 
     """Method not found.
     The method does not exist / is not available.
@@ -401,7 +421,7 @@ class JSONRPC20MethodNotFound(JSONRPC20Error):
     MESSAGE = "Method not found"
 
 
-class JSONRPC20InvalidParams(JSONRPC20Error):
+class JSONRPC20InvalidParams(JSONRPC20SpecificError):
 
     """Invalid params.
     Invalid method parameter(s).
@@ -411,7 +431,7 @@ class JSONRPC20InvalidParams(JSONRPC20Error):
     MESSAGE = "Invalid params"
 
 
-class JSONRPC20InternalError(JSONRPC20Error):
+class JSONRPC20InternalError(JSONRPC20SpecificError):
 
     """Internal error.
     Internal JSON-RPC error.
@@ -421,7 +441,7 @@ class JSONRPC20InternalError(JSONRPC20Error):
     MESSAGE = "Internal error"
 
 
-class JSONRPC20ServerError(JSONRPC20Error):
+class JSONRPC20ServerError(JSONRPC20SpecificError):
 
     """Server error.
     Reserved for implementation-defined server-errors.
