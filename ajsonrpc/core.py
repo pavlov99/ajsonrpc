@@ -320,6 +320,11 @@ class JSONRPC20Error:
         self._body = {}  # init body
         self.body = error_body
 
+    def __eq__(self, other):
+        return self.code == other.code \
+            and self.message == other.message \
+            and self.data == other.data
+
     @property
     def body(self):
         return self._body
@@ -487,10 +492,10 @@ class JSONRPC20Response:
         if value.get("jsonrpc") != "2.0":
             raise ValueError("value['jsonrpc'] has to be '2.0'")
 
-        if "result" not in value and "erorr" not in value:
+        if "result" not in value and "error" not in value:
             raise ValueError("Either result or error should exist")
 
-        if "result" in value and "erorr" in value:
+        if "result" in value and "error" in value:
             raise ValueError("Only one result or error should exist")
 
         if "error" in value:
