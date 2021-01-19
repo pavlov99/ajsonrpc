@@ -8,6 +8,10 @@ class JSONRPC20RequestIdWarning(UserWarning):
     pass
 
 
+class JSONRPC20ResponseIdWarning(UserWarning):
+    pass
+
+
 class JSONRPC20Request:
     """JSON-RPC 2.0 Request object.
 
@@ -545,7 +549,7 @@ class JSONRPC20Response:
             warnings.warn(
                 "Fractional parts may be problematic, since many decimal "
                 "fractions cannot be represented exactly as binary fractions.",
-                JSONRPC20RequestIdWarning
+                JSONRPC20ResponseIdWarning
             )
 
     @id.setter
