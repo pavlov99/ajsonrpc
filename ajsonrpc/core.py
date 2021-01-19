@@ -532,14 +532,6 @@ class JSONRPC20Response:
     @staticmethod
     def validate_id(value: Optional[Union[str, Number]]) -> None:
         if value is None:
-            warnings.warn(
-                "The use of Null as a value for the id member in a Request "
-                "object is discouraged, because this specification uses a "
-                "value of Null for Responses with an unknown id. Also, because"
-                " JSON-RPC 1.0 uses an id value of Null for Notifications this"
-                " could cause confusion in handling.",
-                JSONRPC20RequestIdWarning
-            )
             return
 
         if not isinstance(value, (str, Number)):
