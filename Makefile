@@ -14,7 +14,7 @@ clean:
 	@find . -name *\__pycache__ -delete
 
 env:
-	@python3 -m venv $(ENV)
+	@python3.8 -m venv $(ENV)
 
 env-test: env
 	$(BIN)/pip install pytest==6.2.1 pytest-asyncio==0.14.0
