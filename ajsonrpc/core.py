@@ -568,3 +568,19 @@ class JSONRPC20BatchResponse(collections.abc.MutableSequence):
 
     def insert(self, index, value: JSONRPC20Response):
         self.requests.insert(index, value)
+
+
+class JSONRPC20Exception(Exception):
+
+    """JSON-RPC Exception class."""
+
+    pass
+
+
+class JSONRPC20DispatchException(JSONRPC20Exception):
+
+    """JSON-RPC Base Exception for dispatcher methods."""
+
+    def __init__(self, code=None, message=None, data=None, *args, **kwargs):
+        super(JSONRPC20DispatchException, self).__init__(args, kwargs)
+        self.error = JSONRPC20Error(code=code, data=data, message=message)

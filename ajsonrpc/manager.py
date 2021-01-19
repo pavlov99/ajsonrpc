@@ -2,8 +2,14 @@ import json
 import inspect
 from typing import Optional, Union
 
-from .core import JSONRPC20Request, JSONRPC20BatchRequest, JSONRPC20Response, JSONRPC20BatchResponse, JSONRPC20MethodNotFound
+from .core import (
+    JSONRPC20Request, JSONRPC20BatchRequest, JSONRPC20Response,
+    JSONRPC20BatchResponse, JSONRPC20MethodNotFound, JSONRPC20InvalidParams,
+    JSONRPC20ServerError,
+    JSONRPC20DispatchException,
+)
 from .dispatcher import Dispatcher
+from .utils import is_invalid_params
 
 
 class AsyncJSONRPCResponseManager:
@@ -32,8 +38,22 @@ class AsyncJSONRPCResponseManager:
             # method not found
             output = self._prepare_response(request, error=JSONRPC20MethodNotFound())
         else:
-            pass
-
+            try:
+                result = method(*request.args, **request.kwargs) \
+                    if not inspect.iscoroutinefunction(method) \
+                    else await method(*request.args, **request.kwargs)
+            except JSONRPC20DispatchException as e:
+                # Dispatcher method raised exception with controlled "data" to return
+                output = self._prepare_response(request, error=e.error)
+            except Exception as e:
+                if is_invalid_params(method, *request.args, **request.kwargs):
+                    # Method's parameters are incorrect
+                    output =self._prepare_response(request, error=JSONRPC20InvalidParams())
+                else:
+                    # Dispatcher method raised exception
+                    output =self._prepare_response(request, error=JSONRPC20ServerError())
+            else:
+                output = self._prepare_response(request, result=result)
         finally:
             if not request.is_notification:
                 return output
