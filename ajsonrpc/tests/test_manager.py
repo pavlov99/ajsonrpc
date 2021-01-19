@@ -1,27 +1,35 @@
-import pytest
+"""Test Async JSON-RPC Response manager."""
+import unittest
 
-from ..core import JSONRPC20Request
+from ..core import JSONRPC20Request, JSONRPC20Response, JSONRPC20MethodNotFound
 from ..manager import AsyncJSONRPCResponseManager
 
+
+def subtract(minuend, subtrahend):
+    return minuend - subtrahend
 
 async def async_fun():
     return 'async function'
 
 
-class TestJSONRPCResponseManager:
+class TestAsyncJSONRPCResponseManager(unittest.IsolatedAsyncioTestCase):
+
     dispatcher = {
         "add": sum,
         "multiply": lambda a, b: a * b,
-        "list_len": len,
-        "101_base": lambda **kwargs: int("101", **kwargs),
-        "key_error": lambda: raise_(KeyError("error_explanation")),
-        "type_error": lambda: raise_(TypeError("TypeError inside method")),
-        "async_fun": async_fun,
+        "subtract": subtract,
     }
+
     manager = AsyncJSONRPCResponseManager(dispatcher=dispatcher)
 
-    @pytest.mark.asyncio
-    async def test_handle_request(self):
-        req = JSONRPC20Request('add', params=[[1, 2]], id=0)
-        res = await self.manager.handle_request(req)
-        assert res.result == 3
+    async def test_get_request_method_not_found(self):
+        req = JSONRPC20Request('does_not_exist', id=0)
+        res = await self.manager.get_response(req)
+        self.assertTrue(isinstance(res, JSONRPC20Response))
+        self.assertEqual(res.error, JSONRPC20MethodNotFound())
+        self.assertEqual(res.id, req.id)
+
+    async def test_test_get_request_method_not_found_notification(self):
+        req = JSONRPC20Request('does_not_exist', is_notification=True)
+        res = await self.manager.get_response(req)
+        self.assertIsNone(res)
