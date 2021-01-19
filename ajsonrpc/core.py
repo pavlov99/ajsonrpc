@@ -1,7 +1,7 @@
 from typing import Union, Optional, Any, Iterable, Mapping, List, Dict
 from numbers import Number
 import warnings
-import collections
+import collections.abc
 
 
 class JSONRPC20RequestIdWarning(UserWarning):
@@ -247,7 +247,7 @@ class JSONRPC20Request:
         return dict(self.params) if isinstance(self.params, Mapping) else {}
 
 
-class JSONRPC20BatchRequest(collections.MutableSequence):
+class JSONRPC20BatchRequest(collections.abc.MutableSequence):
     def __init__(self, requests: List[JSONRPC20Request] = None):
         self.requests = requests or []
 
@@ -549,7 +549,7 @@ class JSONRPC20Response:
         self._body["id"] = value
 
 
-class JSONRPC20BatchResponse(collections.MutableSequence):
+class JSONRPC20BatchResponse(collections.abc.MutableSequence):
     def __init__(self, requests: List[JSONRPC20Response] = None):
         self.requests = requests or []
 
