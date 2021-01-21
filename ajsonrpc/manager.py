@@ -21,22 +21,15 @@ class AsyncJSONRPCResponseManager:
         self.serialize = serialize
         self.deserialize = deserialize
 
-    @staticmethod
-    def _prepare_response(request: JSONRPC20Request, **kwargs) -> JSONRPC20Response:
-        response = JSONRPC20Response(
-            id=request.id if not request.is_notification else None,
-            **kwargs
-        )
-        return response
-
     async def get_response(self, request: JSONRPC20Request) -> Optional[JSONRPC20Response]:
         """Get response for an individual request."""
         output = None
+        response_id = request.id if not request.is_notification else None
         try:
             method = self.dispatcher[request.method]
         except KeyError:
             # method not found
-            output = self._prepare_response(request, error=JSONRPC20MethodNotFound())
+            output = JSONRPC20Response(error=JSONRPC20MethodNotFound(), id=response_id)
         else:
             try:
                 result = method(*request.args, **request.kwargs) \
@@ -44,16 +37,16 @@ class AsyncJSONRPCResponseManager:
                     else await method(*request.args, **request.kwargs)
             except JSONRPC20DispatchException as e:
                 # Dispatcher method raised exception with controlled "data" to return
-                output = self._prepare_response(request, error=e.error)
+                output = JSONRPC20Response(error=e.error, id=response_id)
             except Exception as e:
                 if is_invalid_params(method, *request.args, **request.kwargs):
                     # Method's parameters are incorrect
-                    output =self._prepare_response(request, error=JSONRPC20InvalidParams())
+                    output = JSONRPC20Response(error=JSONRPC20InvalidParams(), id=response_id)
                 else:
                     # Dispatcher method raised exception
-                    output =self._prepare_response(request, error=JSONRPC20ServerError())
+                    output = JSONRPC20Response(error=JSONRPC20ServerError(), id=response_id)
             else:
-                output = self._prepare_response(request, result=result)
+                output = JSONRPC20Response(result=result, id=response_id)
         finally:
             if not request.is_notification:
                 return output
