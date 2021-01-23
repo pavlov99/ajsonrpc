@@ -1,11 +1,12 @@
 import unittest
 import warnings
 
-from ..core import (JSONRPC20BatchRequest, JSONRPC20Error,
-                    JSONRPC20InternalError, JSONRPC20InvalidParams,
-                    JSONRPC20InvalidRequest, JSONRPC20MethodNotFound,
-                    JSONRPC20ParseError, JSONRPC20Request,
-                    JSONRPC20RequestIdWarning, JSONRPC20ServerError)
+from ..core import (JSONRPC20BatchRequest, JSONRPC20BatchResponse,
+                    JSONRPC20Error, JSONRPC20InternalError,
+                    JSONRPC20InvalidParams, JSONRPC20InvalidRequest,
+                    JSONRPC20MethodNotFound, JSONRPC20ParseError,
+                    JSONRPC20Request, JSONRPC20RequestIdWarning,
+                    JSONRPC20Response, JSONRPC20ServerError)
 
 
 class TestJSONRPC20Request(unittest.TestCase):
@@ -32,7 +33,7 @@ class TestJSONRPC20Request(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             JSONRPC20Request(method=[], id=0)
-        
+
         with self.assertRaises(ValueError):
             r.method = []
 
@@ -41,17 +42,17 @@ class TestJSONRPC20Request(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             JSONRPC20Request(method={}, id=0)
-        
+
         with self.assertRaises(ValueError):
             r.method = {}
-    
+
     def test_method_validation_invalid_rpc_prefix(self):
         """ Test method SHOULD NOT starts with rpc."""
         r = JSONRPC20Request(method="valid", id=0)
 
         with self.assertRaises(ValueError):
             JSONRPC20Request(method="rpc.", id=0)
-        
+
         with self.assertRaises(ValueError):
             r.method = "rpc."
 
@@ -60,17 +61,17 @@ class TestJSONRPC20Request(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             JSONRPC20Request(method="rpc.test", id=0)
-        
+
         with self.assertRaises(ValueError):
             r.method = "rpc.test"
 
         JSONRPC20Request(method="rpcvalid", id=0)
         JSONRPC20Request(method="rpc", id=0)
-    
+
     #############################################
     # "params" tests
     #############################################
-    
+
     def test_params_validation_none(self):
         r1 = JSONRPC20Request("null_params", params=None, id=1)
         self.assertFalse("params" in r1.body)
@@ -92,7 +93,7 @@ class TestJSONRPC20Request(unittest.TestCase):
         self.assertEqual(r.params, ())  # keep the same iterable
         r.params = (0, 1)
         self.assertEqual(r.params, (0, 1))
-    
+
     def test_params_validation_iterable(self):
         r1 = JSONRPC20Request("string_params", params="string", id=1)
         self.assertEqual(r1.params, "string")
@@ -148,7 +149,7 @@ class TestJSONRPC20Request(unittest.TestCase):
             assert len(_warnings) == 1
             assert issubclass(_warnings[-1].category, JSONRPC20RequestIdWarning)
             assert "Null as a value" in str(_warnings[-1].message)
-        
+
         # Float ids are possible but discouraged
         with warnings.catch_warnings(record=True) as _warnings:
             warnings.simplefilter("always")
@@ -175,7 +176,7 @@ class TestJSONRPC20Request(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             r.id = {}
-    
+
     #############################################
     # Notification tests
     #############################################
@@ -185,7 +186,7 @@ class TestJSONRPC20Request(unittest.TestCase):
         self.assertTrue(r.is_notification)
         with self.assertRaises(KeyError):
             r.id
-    
+
     def test_notification_conversion(self):
         r = JSONRPC20Request("notification", id=0)
         self.assertFalse(r.is_notification)
@@ -258,7 +259,7 @@ class TestJSONRPC20BatchRequest(unittest.TestCase):
 
 
 class TestJSONRPC20Error(unittest.TestCase):
-    
+
     """Test JSONRPC20Error.
 
     On creation and after modification the request object has to be valid. As
@@ -276,13 +277,13 @@ class TestJSONRPC20Error(unittest.TestCase):
         # Allow numeric codes. Though, prefer using integers
         e.code = 1
         self.assertEqual(e.code, 1)
-    
+
     def test_code_validation_not_number(self):
         e = JSONRPC20Error(code=0, message="error")
 
         with self.assertRaises(ValueError):
             JSONRPC20Error(code="0", message="error")
-        
+
         with self.assertRaises(ValueError):
             e.code = "0"
 
@@ -295,13 +296,13 @@ class TestJSONRPC20Error(unittest.TestCase):
         self.assertEqual(e.message, "error")
         e.message = "specific error"
         self.assertEqual(e.message, "specific error")
-    
+
     def test_message_validation_not_str(self):
         e = JSONRPC20Error(code=0, message="error")
 
         with self.assertRaises(ValueError):
             JSONRPC20Error(code=0, message=0)
-        
+
         with self.assertRaises(ValueError):
             e.message = 0
 
@@ -330,3 +331,77 @@ class TestJSONRPC20Error(unittest.TestCase):
 
             with self.assertRaises(NotImplementedError):
                 error.message = ""
+
+
+class TestJSONRPC20Response(unittest.TestCase):
+    def test_valid_result(self):
+        response = JSONRPC20Response(result="valid")
+        self.assertEqual(response.result, "valid")
+        self.assertIsNone(response.error)
+        self.assertEqual(
+            response.body,
+            {"jsonrpc": "2.0", "id": None, "result": "valid"}
+        )
+
+    def test_valid_error(self):
+        error = JSONRPC20MethodNotFound()
+        response = JSONRPC20Response(error=error)
+        self.assertIsNone(response.result)
+        self.assertEqual(response.error, error)
+        self.assertEqual(
+            response.body,
+            {"jsonrpc": "2.0", "id": None, "error": error.body}
+        )
+
+    def test_set_valid_body(self):
+        response = JSONRPC20Response(result="")
+        response.body = {
+            "jsonrpc": "2.0",
+            "id": None,
+            "error": {
+                "code": 0,
+                "message": "",
+            }
+        }
+        self.assertIsInstance(response.error, JSONRPC20Error)
+
+    def test_set_body_result_and_error(self):
+        response = JSONRPC20Response(result="")
+        with self.assertRaises(ValueError):
+            response.body = {
+                "jsonrpc": "2.0",
+                "id": None,
+                "result": "",
+                "error": {
+                    "code": 0,
+                    "message": "",
+                }
+            }
+
+        with self.assertRaises(ValueError):
+            JSONRPC20Response(
+                result="",
+                error=JSONRPC20Error(code=0, message="")
+            )
+
+    @unittest.skip("TODO: Implement later")
+    def test_set_body_error_correct_error_class(self):
+        """Return error class matching pre-defined error codes."""
+        response = JSONRPC20Response(result="")
+        response.body = {
+            "jsonrpc": "2.0",
+            "id": None,
+            "error": JSONRPC20MethodNotFound().body,
+        }
+        self.assertIsInstance(response.error, JSONRPC20MethodNotFound)
+
+
+class TestJSONRPC20BatchResponse(unittest.TestCase):
+    def test_init(self):
+        batch = JSONRPC20BatchResponse()
+        self.assertEqual(len(batch), 0)
+
+        batch.append(JSONRPC20Response(result="first", id=1))
+        batch.extend([JSONRPC20Response(result="second", id=2)])
+        self.assertEqual(len(batch), 2)
+        self.assertEqual(batch[-1].result, "second")
