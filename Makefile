@@ -16,13 +16,10 @@ clean:
 env:
 	@python3.8 -m venv $(ENV)
 
-env-test: env
-	$(BIN)/pip install pytest==6.2.1 pytest-asyncio==0.14.0
-
 .PHONY: test
 # target: test - test the code
-test:
-	$(BIN)/pytest
+test: env
+	$(BIN)/python -m unittest
 
 .PHONY: build
 # target: build - Build package
