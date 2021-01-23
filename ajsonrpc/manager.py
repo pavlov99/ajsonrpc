@@ -1,11 +1,12 @@
 import json
 import inspect
-from typing import Optional, Union
+import asyncio
+from typing import Optional, Union, Iterable, Mapping
 
 from .core import (
     JSONRPC20Request, JSONRPC20BatchRequest, JSONRPC20Response,
     JSONRPC20BatchResponse, JSONRPC20MethodNotFound, JSONRPC20InvalidParams,
-    JSONRPC20ServerError,
+    JSONRPC20ServerError, JSONRPC20ParseError, JSONRPC20InvalidRequest,
     JSONRPC20DispatchException,
 )
 from .dispatcher import Dispatcher
@@ -29,38 +30,74 @@ class AsyncJSONRPCResponseManager:
             method = self.dispatcher[request.method]
         except KeyError:
             # method not found
-            output = JSONRPC20Response(error=JSONRPC20MethodNotFound(), id=response_id)
+            output = JSONRPC20Response(
+                error=JSONRPC20MethodNotFound(),
+                id=response_id
+            )
         else:
             try:
-                result = method(*request.args, **request.kwargs) \
-                    if not inspect.iscoroutinefunction(method) \
-                    else await method(*request.args, **request.kwargs)
+                result = await method(*request.args, **request.kwargs) \
+                    if inspect.iscoroutinefunction(method) \
+                    else method(*request.args, **request.kwargs)
             except JSONRPC20DispatchException as dispatch_error:
-                # Dispatcher method raised exception with controlled "data" to return
-                output = JSONRPC20Response(error=dispatch_error.error, id=response_id)
-            except Exception:
+                # Dispatcher method raised exception with controlled "data"
+                output = JSONRPC20Response(
+                    error=dispatch_error.error,
+                    id=response_id
+                )
+            except:
                 if is_invalid_params(method, *request.args, **request.kwargs):
                     # Method's parameters are incorrect
-                    output = JSONRPC20Response(error=JSONRPC20InvalidParams(), id=response_id)
+                    output = JSONRPC20Response(
+                        error=JSONRPC20InvalidParams(),
+                        id=response_id
+                    )
                 else:
                     # Dispatcher method raised exception
-                    output = JSONRPC20Response(error=JSONRPC20ServerError(), id=response_id)
+                    output = JSONRPC20Response(
+                        error=JSONRPC20ServerError(),
+                        id=response_id
+                    )
             else:
                 output = JSONRPC20Response(result=result, id=response_id)
-        finally:
-            if not request.is_notification:
-                return output
 
-    def handle(self, request: str) -> str:
-        """Top level handler"""
+        if not request.is_notification:
+            return output
 
-        # might be not deserializable, expect to receive single jsonrpc20response with error.
-        request_data = self.deserialize(request)
+    async def handle_request_body(self, request_body):
+        """Catch parse error as well"""
+        try:
+            request = JSONRPC20Request.from_body(request_body)
+        except ValueError:
+            return JSONRPC20Response(error=JSONRPC20InvalidRequest())
+        else:
+            return await self.get_response(request)
+
+    async def handle(self, payload: str) -> Optional[Union[JSONRPC20Response, JSONRPC20BatchResponse]]:
+        """Top level handler
+
+        NOTE: top level handler, accepts string payload.
+
+        """
+        try:
+            request_data = self.deserialize(payload)
+        except (TypeError, ValueError):
+            return JSONRPC20Response(error=JSONRPC20ParseError())
+
         # check if iterable, and determine what request to instantiate.
-        # handle each request individually, they are async, so await on a list of requests.
-        # await on all to finish
-        # filter nulls
-        # prepare response or batch response
-        # serialize the data
-        # TODO: implement batch response.body method
-        pass
+        is_batch_request = isinstance(request_data, Iterable) \
+            and not isinstance(request_data, Mapping)
+        if is_batch_request and len(request_data) == 0:
+            return JSONRPC20Response(error=JSONRPC20InvalidRequest())
+
+        requests_bodies = request_data if is_batch_request else [request_data]
+        responses = await asyncio.gather(*[
+            self.handle_request_body(request_body)
+            for request_body in requests_bodies
+        ])
+        nonempty_responses = [r for r in responses if r is not None]
+        if is_batch_request:
+            if len(nonempty_responses) > 0:
+                return JSONRPC20BatchResponse(nonempty_responses)
+        elif len(nonempty_responses) > 0:
+            return nonempty_responses[0]
