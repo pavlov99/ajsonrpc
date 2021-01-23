@@ -125,11 +125,15 @@ class JSONRPC20Request:
 
     @body.setter
     def body(self, value: Mapping[str, Any]) -> None:
-        if not isinstance(value, dict):
-            raise ValueError("value has to be of type dict")
+        if not isinstance(value, Mapping):
+            raise ValueError("request body has to be of type Mapping")
+
+        extra_keys = set(value.keys()) - {"jsonrpc", "method", "params", "id"}
+        if len(extra_keys) > 0:
+            raise ValueError("unexpected keys {}".format(extra_keys))
 
         if value.get("jsonrpc") != "2.0":
-            raise ValueError("value['jsonrpc'] has to be '2.0'")
+            raise ValueError("value of key 'jsonrpc' has to be '2.0'")
 
         self.validate_method(value["method"])
         if "params" in value:
@@ -139,10 +143,7 @@ class JSONRPC20Request:
         if "id" in value:
             self.validate_id(value["id"])
 
-        self._body = {
-            k: v for (k, v) in value.items()
-            if k in ["jsonrpc", "method", "params", "id"]
-        }
+        self._body = value
 
     @property
     def method(self) -> str:
@@ -250,6 +251,12 @@ class JSONRPC20Request:
         # if mapping
         return dict(self.params) if isinstance(self.params, Mapping) else {}
 
+    @staticmethod
+    def from_body(body: Mapping):
+        request = JSONRPC20Request(method="", id=0)
+        request.body = body
+        return request
+
 
 class JSONRPC20BatchRequest(collections.abc.MutableSequence):
     def __init__(self, requests: List[JSONRPC20Request] = None):
@@ -269,6 +276,10 @@ class JSONRPC20BatchRequest(collections.abc.MutableSequence):
 
     def insert(self, index, value: JSONRPC20Request):
         self.requests.insert(index, value)
+
+    @property
+    def body(self):
+        return [request.body for request in self]
 
 
 class JSONRPC20Error:
@@ -576,6 +587,10 @@ class JSONRPC20BatchResponse(collections.abc.MutableSequence):
 
     def insert(self, index, value: JSONRPC20Response):
         self.requests.insert(index, value)
+
+    @property
+    def body(self):
+        return [request.body for request in self]
 
 
 class JSONRPC20Exception(Exception):
