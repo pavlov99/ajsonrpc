@@ -35,10 +35,10 @@ class AsyncJSONRPCResponseManager:
                 result = method(*request.args, **request.kwargs) \
                     if not inspect.iscoroutinefunction(method) \
                     else await method(*request.args, **request.kwargs)
-            except JSONRPC20DispatchException as e:
+            except JSONRPC20DispatchException as dispatch_error:
                 # Dispatcher method raised exception with controlled "data" to return
-                output = JSONRPC20Response(error=e.error, id=response_id)
-            except Exception as e:
+                output = JSONRPC20Response(error=dispatch_error.error, id=response_id)
+            except Exception:
                 if is_invalid_params(method, *request.args, **request.kwargs):
                     # Method's parameters are incorrect
                     output = JSONRPC20Response(error=JSONRPC20InvalidParams(), id=response_id)
@@ -64,50 +64,3 @@ class AsyncJSONRPCResponseManager:
         # serialize the data
         # TODO: implement batch response.body method
         pass
-
-    async def handle_request(self, request: Union[JSONRPC20Request, JSONRPC20BatchRequest]
-            ) -> Optional[Union[JSONRPC20Response, JSONRPC20BatchResponse]]:
-        """Handle individual JSON-RPC request.
-
-        Args:
-            request (ajsonrpc.JSONRPC20Request) individual request
-
-        Returns:
-            ajsonrpc.JSONRPC20Response, optional json-rpc response or
-            None if request is a notification or batch response list is empty.
-
-        """
-        def make_response(**kwargs):
-            response = JSONRPC20Response(id=request.id, **kwargs)
-            response.request = request
-            return response
-        
-        output = None
-        try:
-            method = self.dispatcher[request.method]
-        except KeyError:
-            # output = make_response(error=JSONRPCMethodNotFound()._data)
-            pass
-        else:
-            try:
-                result = method(*request.args, **request.kwargs) \
-                    if not inspect.iscoroutinefunction(method) \
-                    else await method(*request.args, **request.kwargs)
-            # except JSONRPCDispatchException as e:
-            #     output = make_response(error=e.error._data)
-            except Exception as e:
-                data = {
-                    "type": e.__class__.__name__,
-                    "args": e.args,
-                    "message": str(e),
-                }
-                print(data)
-                # if isinstance(e, TypeError) and is_invalid_params(method, *request.args, **request.kwargs):
-                #     output = make_response(error=JSONRPCInvalidParams(data=data)._data)
-                # else:
-                #     output = make_response(error=JSONRPCServerError(data=data)._data)
-            else:
-                output = make_response(result=result)
-        finally:
-            # if not request.is_notification:
-            return output
