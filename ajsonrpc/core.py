@@ -382,6 +382,14 @@ class JSONRPC20Error:
     def data(self):
         del self._body["data"]
 
+    @staticmethod
+    def validate_body(value: dict) -> None:
+        if not (set(value.keys()) <= {"code", "message", "data"}):
+            raise ValueError("Error body could have only 'code', 'message' and 'data' keys")
+
+        JSONRPC20Error.validate_code(value.get("code"))
+        JSONRPC20Error.validate_message(value.get("message"))
+
 
 class JSONRPC20SpecificError(JSONRPC20Error):
 
@@ -479,7 +487,7 @@ class JSONRPC20Response:
             response_body["result"] = result
 
         if error is not None:
-            response_body["error"] = error
+            response_body["error"] = error.body
 
         self._body = {}  # init body
         self.body = response_body
@@ -518,12 +526,12 @@ class JSONRPC20Response:
 
     @property
     def error(self) -> Optional[JSONRPC20Error]:
-        return self.body.get("error")
+        if "error" in self.body:
+            return JSONRPC20Error(**self.body["error"])
 
     @staticmethod
-    def validate_error(value: Optional[JSONRPC20Error]) -> None:
-        if not isinstance(value, JSONRPC20Error):
-            raise ValueError("Error has to be a subclass of JSONRPC20Error")
+    def validate_error(error_body: dict) -> None:
+        JSONRPC20Error.validate_body(error_body)
 
     @property
     def id(self):
