@@ -42,8 +42,9 @@ class JSONRPCProtocol(asyncio.Protocol):
         del data["jsonrpc"]
         req = JSONRPC20Request(**data)
 
-        task = asyncio.async(self.json_rpc_manager.handle_request(req))
-        task.add_done_callback(self.handle_task_result)
+        # FIXME
+        # task = asyncio.async(self.json_rpc_manager.handle_request(req))
+        # task.add_done_callback(self.handle_task_result)
 
 
 def main():

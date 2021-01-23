@@ -1,10 +1,10 @@
+ENV=$(CURDIR)/.env
+BIN=$(ENV)/bin
+
 .PHONY: help
 # target: help - Display callable targets
 help:
 	@egrep "^# target:" [Mm]akefile
-
-pipenv:
-	@pipenv install --dev
 
 .PHONY: clean
 # target: clean - Display callable targets
@@ -13,22 +13,28 @@ clean:
 	@find . -name \*.py[co] -delete
 	@find . -name *\__pycache__ -delete
 
+env:
+	@python3.8 -m venv $(ENV)
+
+env-test: env
+	$(BIN)/pip install pytest==6.2.1 pytest-asyncio==0.14.0
+
 .PHONY: test
 # target: test - test the code
 test:
-	@pipenv run pytest
+	$(BIN)/pytest
 
 .PHONY: build
 # target: build - Build package
 build: clean
-	@pipenv run python setup.py sdist bdist_wheel
+	$(BIN)/python setup.py sdist bdist_wheel
 
 .PHONY: test-release
 # target: test-release - Release package to test pypi
 test-release: build
-	@pipenv run twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+	$(BIN)/twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 .PHONY: release
 # target: release - Release package to pypi
 release: build
-	@pipenv run twine upload dist/*
+	$(BIN)/twine upload dist/*

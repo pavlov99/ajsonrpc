@@ -5,10 +5,10 @@ For usage examples see :meth:`~Dispatcher.add_method`
 
 """
 import functools
-import collections
+import collections.abc
 
 
-class Dispatcher(collections.MutableMapping):
+class Dispatcher(collections.abc.MutableMapping):
 
     """Dictionary-like object which maps method_name to method."""
 
