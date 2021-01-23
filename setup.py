@@ -2,7 +2,7 @@
 import os.path
 from setuptools import setup
 from collections import OrderedDict
-from ajsonrpc import version
+from ajsonrpc import __version__
 
 
 def read(fname):
@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name="ajsonrpc",
-    version=version,
+    version=__version__,
     url="https://github.com/pavlov99/ajsonrpc",
     project_urls=OrderedDict((
         ('Documentation', 'https://ajsonrpc.readthedocs.io'),
@@ -44,6 +44,8 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
 )
