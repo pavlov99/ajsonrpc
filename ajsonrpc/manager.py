@@ -22,7 +22,7 @@ class AsyncJSONRPCResponseManager:
         self.serialize = serialize
         self.deserialize = deserialize
 
-    async def get_response(self, request: JSONRPC20Request) -> Optional[JSONRPC20Response]:
+    async def get_response_for_request(self, request: JSONRPC20Request) -> Optional[JSONRPC20Response]:
         """Get response for an individual request."""
         output = None
         response_id = request.id if not request.is_notification else None
@@ -64,16 +64,16 @@ class AsyncJSONRPCResponseManager:
         if not request.is_notification:
             return output
 
-    async def handle_request_body(self, request_body):
+    async def get_response_for_request_body(self, request_body):
         """Catch parse error as well"""
         try:
             request = JSONRPC20Request.from_body(request_body)
         except ValueError:
             return JSONRPC20Response(error=JSONRPC20InvalidRequest())
         else:
-            return await self.get_response(request)
+            return await self.get_response_for_request(request)
 
-    async def handle(self, payload: str) -> Optional[Union[JSONRPC20Response, JSONRPC20BatchResponse]]:
+    async def get_response_for_payload(self, payload: str) -> Optional[Union[JSONRPC20Response, JSONRPC20BatchResponse]]:
         """Top level handler
 
         NOTE: top level handler, accepts string payload.
@@ -92,7 +92,7 @@ class AsyncJSONRPCResponseManager:
 
         requests_bodies = request_data if is_batch_request else [request_data]
         responses = await asyncio.gather(*[
-            self.handle_request_body(request_body)
+            self.get_response_for_request_body(request_body)
             for request_body in requests_bodies
         ])
         nonempty_responses = [r for r in responses if r is not None]
@@ -101,3 +101,11 @@ class AsyncJSONRPCResponseManager:
                 return JSONRPC20BatchResponse(nonempty_responses)
         elif len(nonempty_responses) > 0:
             return nonempty_responses[0]
+
+    async def get_payload_for_payload(self, payload: str):
+        response = await self.get_response_for_payload(payload)
+
+        if response is None:
+            return ""
+
+        return self.serialize(response.body)
