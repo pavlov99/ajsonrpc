@@ -14,24 +14,25 @@ setup(
     version=__version__,
     url="https://github.com/pavlov99/ajsonrpc",
     project_urls=OrderedDict((
-        ('Documentation', 'https://ajsonrpc.readthedocs.io'),
-        ('Code', 'https://github.com/pavlov99/ajsonrpc'),
-        ('Issue tracker', 'https://github.com/pavlov99/ajsonrpc/issues'),
+        ("Documentation", "https://ajsonrpc.readthedocs.io"),
+        ("Code", "https://github.com/pavlov99/ajsonrpc"),
+        ("Issue tracker", "https://github.com/pavlov99/ajsonrpc/issues"),
     )),
     license="MIT",
     author="Kirill Pavlov",
     author_email="k@p99.io",
-    packages=['ajsonrpc'],
+    packages=["ajsonrpc"],
     entry_points = {
-        'console_scripts': [
-            'async-json-rpc-server=ajsonrpc.scripts.server:main',
+        "console_scripts": [
+            "async-json-rpc-server=ajsonrpc.scripts.server:main",
         ],
     },
     include_package_data=True,
-    platforms='any',
+    platforms="any",
     python_requires='>=3.5',
     description="Async JSON-RPC 2.0 protocol + server powered by asyncio",
-    long_description=read('README.rst'),
+    long_description=read("README.md"),
+    long_description_content_type="text/markdown",
     classifiers=[
         "Development Status :: 1 - Planning",
         "Environment :: Console",
