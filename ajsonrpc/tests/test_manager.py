@@ -94,6 +94,23 @@ class TestAsyncJSONRPCResponseManager(unittest.IsolatedAsyncioTestCase):
         req = JSONRPC20Request("unexpected_exception", is_notification=True)
         res = await self.manager.get_response_for_request(req)
         self.assertIsNone(res)
+    
+    async def test_get_response_for_payload_batch(self):
+        response = await self.manager.get_response_for_payload(json.dumps([
+            {"jsonrpc": "2.0", "method": "subtract", "params": [3, 4], "id": 1},
+            {"jsonrpc": "2.0"}
+        ]))
+        self.assertEqual(
+            response.body,
+            [
+                {"jsonrpc": "2.0", "result": -1, "id": 1},
+                {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32600, "message": "Invalid Request"},
+                    "id": None
+                },
+            ]
+        )
 
     #############################################
     # Test examples from https://www.jsonrpc.org/specification

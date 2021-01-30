@@ -135,7 +135,7 @@ class JSONRPC20Request:
         if value.get("jsonrpc") != "2.0":
             raise ValueError("value of key 'jsonrpc' has to be '2.0'")
 
-        self.validate_method(value["method"])
+        self.validate_method(value.get("method"))
         if "params" in value:
             self.validate_params(value["params"])
 
