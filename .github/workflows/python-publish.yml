@@ -21,7 +21,7 @@ jobs:
     - name: Get release tag
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
     - name: Set package version
-      run: echo "__version__ = \"${GITHUB_REF#refs/*/}\"" > ajsonrpc/__init__.py
+      run: echo "__version__ = \"${GITHUB_REF#refs/*/}\"" >> ajsonrpc/__init__.py
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
