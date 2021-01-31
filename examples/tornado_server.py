@@ -4,7 +4,7 @@ from ajsonrpc.backend.tornado import JSONRPCTornado
 
 api = JSONRPCTornado()
 
-@api.add_method
+@api.add_function
 async def add(a, b):
     return a + b
 

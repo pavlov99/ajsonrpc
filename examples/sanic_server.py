@@ -5,7 +5,7 @@ app = Sanic("Example App")
 api = JSONRPCSanic()
 app.route("/jsonrpc", methods=["POST",])(api.handler)
 
-@api.add_method
+@api.add_function
 async def add(a, b):
     return a + b
 

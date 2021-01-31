@@ -1,18 +1,21 @@
 """Method name to method mapper.
 
 Dispatcher is a dict-like object which maps method_name to method.
-For usage examples see :meth:`~Dispatcher.add_method`
+For usage examples see :meth:`~Dispatcher.add_function`
 
 """
 import functools
-import collections.abc
+import inspect
+import types
+from typing import Any, Optional, Mapping
+from collections.abc import Mapping as CollectionsMapping, MutableMapping, Callable
 
 
-class Dispatcher(collections.abc.MutableMapping):
+class Dispatcher(MutableMapping):
 
     """Dictionary-like object which maps method_name to method."""
 
-    def __init__(self, prototype=None):
+    def __init__(self, prototype: Any = None, prefix: Optional[str] = None) -> None:
         """ Build method dispatcher.
 
         Parameters
@@ -29,18 +32,18 @@ class Dispatcher(collections.abc.MutableMapping):
         None
 
         """
-        self.method_map = dict()
+        self.method_map: Mapping[str, Callable] = dict()
 
         if prototype is not None:
-            self.add_prototype(prototype)
+            self.add_prototype(prototype, prefix=prefix)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Callable:
         return self.method_map[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Callable) -> None:
         self.method_map[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         del self.method_map[key]
 
     def __len__(self):
@@ -52,21 +55,30 @@ class Dispatcher(collections.abc.MutableMapping):
     def __repr__(self):
         return repr(self.method_map)
 
-    @classmethod
-    def extract_methods(cls, prototype, prefix=''):
-        return dict(
-            (prefix + method, getattr(prototype, method))
-            for method in dir(prototype)
-            if not method.startswith('_')
-        )
+    @staticmethod
+    def _getattr_function(prototype: Any, attr: str) -> Callable:
+        """Fix the issue of accessing instance method of a class.
+        
+        Class.method(self, *args **kwargs) requires the first argument to be
+        instance, but it was not given. Substitute method with a partial
+        function where the first argument is an empty class constructor.
+        
+        """
 
-    def add_prototype(self, prototype, prefix=''):
-        mapping = self.extract_methods(prototype, prefix=prefix) \
-            if not isinstance(prototype, collections.Mapping) \
-            else prototype
-        self.update(mapping)
+        method = getattr(prototype, attr)
+        if inspect.isclass(prototype) and isinstance(prototype.__dict__[attr], types.FunctionType):
+            return functools.partial(method, prototype())
+        return method
 
-    def add_class(self, cls, prefix=None):
+    @staticmethod
+    def _extract_methods(prototype: Any, prefix: str = "") -> Mapping[str, Callable]:
+        return {
+            prefix + attr: Dispatcher._getattr_function(prototype, attr)
+            for attr in dir(prototype)
+            if not attr.startswith("_")
+        }
+
+    def add_class(self, cls: Any, prefix: Optional[str] = None) -> None:
         """Add class to dispatcher.
 
         Adds all of the public methods to dispatcher.
@@ -75,6 +87,8 @@ class Dispatcher(collections.abc.MutableMapping):
         -----
             If class has instance methods (e.g. no @classmethod decorator),
             they likely would not work. Use :meth:`~add_object` instead.
+            At the moment, dispatcher creates an object with empty constructor
+            for instance methods.
 
         Parameters
         ----------
@@ -84,14 +98,29 @@ class Dispatcher(collections.abc.MutableMapping):
             Method prefix. If not present, lowercased class name is used.
 
         """
-        prefix = prefix or cls.__name__.lower() + '.'
-        self.update(Dispatcher.extract_methods(cls), prefix=prefix)
+        if prefix is None:
+            prefix = cls.__name__.lower() + '.'
 
-    def add_object(self, obj, prefix=None):
-        prefix = prefix or obj.__class__.__name__.lower() + '.'
-        self.update(Dispatcher.extract_methods(obj), prefix=prefix)
+        self.update(Dispatcher._extract_methods(cls, prefix=prefix))
 
-    def add_method(self, f=None, name=None):
+    def add_object(self, obj: Any, prefix: Optional[str] = None) -> None:
+        if prefix is None:
+            prefix = obj.__class__.__name__.lower() + '.'
+
+        self.update(Dispatcher._extract_methods(obj, prefix=prefix))
+
+    def add_prototype(self, prototype: Any, prefix: Optional[str] = None) -> None:
+        if isinstance(prototype, CollectionsMapping):
+            self.update({
+                (prefix or "") + key: value
+                for key, value in prototype.items()
+            })
+        elif inspect.isclass(prototype):
+            self.add_class(prototype, prefix=prefix)
+        else:
+            self.add_object(prototype, prefix=prefix)
+
+    def add_function(self, f: Callable = None, name: Optional[str] = None) -> Callable:
         """ Add a method to the dispatcher.
 
         Parameters
@@ -111,25 +140,25 @@ class Dispatcher(collections.abc.MutableMapping):
         Use as method
 
         >>> d = Dispatcher()
-        >>> d.add_method(lambda a, b: a + b, name="sum")
+        >>> d.add_function(lambda a, b: a + b, name="sum")
         <function __main__.<lambda>>
 
         Or use as decorator
 
         >>> d = Dispatcher()
-        >>> @d.add_method
+        >>> @d.add_function
             def mymethod(*args, **kwargs):
                 print(args, kwargs)
 
         Or use as a decorator with a different function name
         >>> d = Dispatcher()
-        >>> @d.add_method(name="my.method")
+        >>> @d.add_function(name="my.method")
             def mymethod(*args, **kwargs):
                 print(args, kwargs)
 
         """
         if name and not f:
-            return functools.partial(self.add_method, name=name)
+            return functools.partial(self.add_function, name=name)
 
         self[name or f.__name__] = f
         return f
