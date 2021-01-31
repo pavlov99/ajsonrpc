@@ -11,8 +11,8 @@ class JSONRPCTornado(CommonBackend):
         class JSONRPCTornadoHandler(tornado.web.RequestHandler):
             async def post(self):
                 self.set_header("Content-Type", "application/json")
-                response = await manager.get_payload_for_payload(self.request.body)
-                self.write(response)
+                payload = await manager.get_payload_for_payload(self.request.body)
+                self.write(payload)
         
         return JSONRPCTornadoHandler
 
