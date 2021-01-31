@@ -2,6 +2,7 @@
 
 [![Python package status](https://github.com/pavlov99/ajsonrpc/workflows/Python%20package/badge.svg)](https://github.com/pavlov99/ajsonrpc/actions?query=workflow%3A%22Python+package%22)
 [![security status](https://github.com/pavlov99/ajsonrpc/workflows/CodeQL/badge.svg)](https://github.com/pavlov99/ajsonrpc/actions?query=workflow%3ACodeQL)
+[![pypi version](https://img.shields.io/pypi/v/ajsonrpc.svg)](https://pypi.org/project/ajsonrpc/)
 
 Lightweight JSON-RPC 2.0 protocol implementation and asynchronous server powered by asyncio. This library is a successor of json-rpc and written by the same team.
 
