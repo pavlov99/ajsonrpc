@@ -64,7 +64,7 @@ class AsyncJSONRPCResponseManager:
         if not request.is_notification:
             return output
 
-    async def get_response_for_request_body(self, request_body):
+    async def get_response_for_request_body(self, request_body) -> Optional[JSONRPC20Response]:
         """Catch parse error as well"""
         try:
             request = JSONRPC20Request.from_body(request_body)
@@ -102,7 +102,7 @@ class AsyncJSONRPCResponseManager:
         elif len(nonempty_responses) > 0:
             return nonempty_responses[0]
 
-    async def get_payload_for_payload(self, payload: str):
+    async def get_payload_for_payload(self, payload: str) -> str:
         response = await self.get_response_for_payload(payload)
 
         if response is None:
