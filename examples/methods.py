@@ -3,7 +3,6 @@ import asyncio
 def echo(s='pong'):
     return s
 
-
 def mul2(a, b):
     return a * b
 
