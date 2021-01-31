@@ -1,8 +1,8 @@
 import tornado.ioloop
 import tornado.web
-from ajsonrpc.backend.tornado import TornadoAPI
+from ajsonrpc.backend.tornado import JSONRPCTornado
 
-api = TornadoAPI()
+api = JSONRPCTornado()
 
 @api.add_method
 async def add(a, b):
