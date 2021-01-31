@@ -16,5 +16,5 @@ class CommonBackend:
     def add_object(self, *args, **kwargs):
         return self.manager.dispatcher.add_object(*args, **kwargs)
 
-    def add_method(self, *args, **kwargs):
-        return self.manager.dispatcher.add_method(*args, **kwargs)
+    def add_function(self, *args, **kwargs):
+        return self.manager.dispatcher.add_function(*args, **kwargs)

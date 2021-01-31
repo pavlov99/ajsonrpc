@@ -43,7 +43,7 @@ d = Dispatcher({"sum": lambda a, b: a + b})
 d["max"] = lambda a, b: max(a, b)
 
 # function decorator
-@d.add_method
+@d.add_function
 def add(x, y):
     return x + y
 
@@ -60,7 +60,7 @@ d.add_object(Math())
 d.add_dict({"min": lambda a, b: min(a, b)})
 
 # rename function
-d.add_method(add, name="my_add")
+d.add_function(add, name="my_add")
 
 # prefix methos
 d.add_class(Math, prefix="get_")

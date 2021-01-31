@@ -12,7 +12,7 @@ from ajsonrpc.backend.tornado import TornadoAPI
 
 api = TornadoAPI()
 
-@api.add_method
+@api.add_function
 async def add(a, b):
     return a + b
 
@@ -40,7 +40,7 @@ app = Sanic("Example App")
 api = JSONRPCSanic()
 app.route("/jsonrpc", methods=["POST",])(api.handler)
 
-@api.add_method
+@api.add_function
 async def add(a, b):
     return a + b
 
