@@ -125,4 +125,5 @@ Batch request example:
 ![server-example-batch](https://raw.githubusercontent.com/pavlov99/ajsonrpc/master/docs/_static/server-example-postman.png)
 
 #### Backends
-This package does not have backend support for frameworks yet (unlike json-rpc that support Django and Flask). If you need to support any framework, please open an issue with your request.
+Backend support is a syntactic sugar that wraps dispatcher and manager under one api class and provides convenient boilerplate, such as handler generation. Currently supported frameworks:
+* Tornado
