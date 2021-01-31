@@ -34,7 +34,7 @@ setup(
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
     classifiers=[
-        "Development Status :: 1 - Planning",
+        "Development Status :: 4 - Beta",
         "Environment :: Console",
         "Framework :: AsyncIO",
         "Intended Audience :: Developers",
