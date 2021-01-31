@@ -128,3 +128,4 @@ Batch request example:
 #### Backends
 Backend support is a syntactic sugar that wraps dispatcher and manager under one api class and provides convenient boilerplate, such as handler generation. Currently supported frameworks:
 * Tornado
+* Sanic
