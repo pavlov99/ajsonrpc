@@ -112,6 +112,20 @@ class TestAsyncJSONRPCResponseManager(unittest.IsolatedAsyncioTestCase):
             ]
         )
 
+    async def test_verbose_error(self):
+        manager = AsyncJSONRPCResponseManager(
+            dispatcher=self.dispatcher, is_server_error_verbose=True)
+        req = JSONRPC20Request("unexpected_exception", id=0)
+        res = await manager.get_response_for_request(req)
+        self.assertEqual(
+            res.error.data,
+            {'type': 'ValueError', 'args': ('Unexpected',), 'message': 'Unexpected'}
+        )
+
+        manager.is_server_error_verbose = False
+        res = await manager.get_response_for_request(req)
+        self.assertIsNone(res.error.data)
+
     #############################################
     # Test examples from https://www.jsonrpc.org/specification
     #############################################
