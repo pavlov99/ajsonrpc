@@ -37,9 +37,13 @@ class AsyncJSONRPCResponseManager:
             )
         else:
             try:
-                result = await method(*request.args, **request.kwargs) \
-                    if inspect.iscoroutinefunction(method) \
-                    else method(*request.args, **request.kwargs)
+                # Compatible with coroutine cyfunction or other kind of functions which return coroutines
+                # but are not coroutine functions
+                co_or_ret = method(*request.args, **request.kwargs)
+                # Maybe `inspect.isawaitable()` is better?
+                result = await co_or_ret \
+                    if inspect.isawaitable(co_or_ret) \
+                    else co_or_ret
             except JSONRPC20DispatchException as dispatch_error:
                 # Dispatcher method raised exception with controlled "data"
                 output = JSONRPC20Response(
