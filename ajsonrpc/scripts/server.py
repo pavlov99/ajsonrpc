@@ -36,7 +36,7 @@ class JSONRPCProtocol(asyncio.Protocol):
         _, payload = request_message.split('\r\n\r\n', 1)
         task = create_task(self.json_rpc_manager.get_payload_for_payload(payload))
         task.add_done_callback(self.handle_task_result)
-    
+
     def handle_task_result(self, task):
         res = task.result()
         self.transport.write((
@@ -49,6 +49,12 @@ class JSONRPCProtocol(asyncio.Protocol):
         logger.info('Close the client socket')
         self.transport.close()
 
+# Compatible with cyfunction.
+# This change helps to work with some modules like `pydantic`, which wraps
+# functions (includes coroutine functions) into cyfunctions. The method
+# `inspect.isfunction()` cannot recognize them for now.
+def is_func_or_cyfunc(object):
+    return isfunction(object) or (type(object).__name__ == "cython_function_or_method")
 
 def main():
     """Usage: % examples.methods"""
@@ -68,7 +74,7 @@ def main():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     # get functions from the module
-    methods = getmembers(module, isfunction)
+    methods = getmembers(module, is_func_or_cyfunc)
     logger.info('Extracted methods: {}'.format(methods))
     dispatcher = Dispatcher(dict(methods))
 
