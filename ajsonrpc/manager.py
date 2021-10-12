@@ -42,7 +42,7 @@ class AsyncJSONRPCResponseManager:
                 co_or_ret = method(*request.args, **request.kwargs)
                 # Maybe `inspect.isawaitable()` is better?
                 result = await co_or_ret \
-                    if inspect.iscoroutine(co_or_ret) \
+                    if inspect.isawaitable(co_or_ret) \
                     else co_or_ret
             except JSONRPC20DispatchException as dispatch_error:
                 # Dispatcher method raised exception with controlled "data"
