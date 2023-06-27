@@ -13,7 +13,7 @@ def is_invalid_params(func, *args, **kwargs):
     """
     # For builtin functions inspect.getargspec(funct) return error. If builtin
     # function generates TypeError, it is because of wrong parameters.
-    if not inspect.isfunction(func):
+    if not inspect.isfunction(func) and not inspect.ismethod(func):
         return True
 
     signature = inspect.signature(func)
@@ -23,13 +23,7 @@ def is_invalid_params(func, *args, **kwargs):
     if len(unexpected) > 0:
         return True
 
-    params = [
-        parameter for name, parameter in parameters.items()
-        if name not in kwargs
-    ]
-    params_required = [
-        param for param in params
-        if param.default is param.empty
-    ]
+    params = [parameter for name, parameter in parameters.items() if name not in kwargs]
+    params_required = [param for param in params if param.default is param.empty]
 
     return not (len(params_required) <= len(args) <= len(params))
