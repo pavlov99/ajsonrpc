@@ -13,7 +13,11 @@ def is_invalid_params(func, *args, **kwargs):
     """
     # For builtin functions inspect.getargspec(funct) return error. If builtin
     # function generates TypeError, it is because of wrong parameters.
-    if not inspect.isfunction(func) and not inspect.ismethod(func):
+    if (
+        not inspect.isfunction(func)
+        and not inspect.ismethod(func)
+        and not inspect.iscoroutinefunction(func)
+    ):
         return True
 
     signature = inspect.signature(func)
